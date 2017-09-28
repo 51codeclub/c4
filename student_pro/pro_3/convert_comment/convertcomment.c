@@ -8,6 +8,8 @@
 
 #include"convertcomment.h"
 
+# i am gxs
+
 int convertcomment(FILE *inputfile, FILE *outputfile)
 {
     if(inputfile==NULL || outputfile==NULL)
