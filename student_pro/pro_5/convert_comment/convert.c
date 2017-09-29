@@ -8,6 +8,7 @@
 
 #include"utili.h"
 #include"convertcomment.h"
+#lijin
 
 int main(int argc, char *argv[])
 {
