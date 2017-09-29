@@ -7,7 +7,6 @@
 **********************************************************/
 
 #include"convertcomment.h"
-#lijin
 
 int convertcomment(FILE *inputfile, FILE *outputfile)
 {
