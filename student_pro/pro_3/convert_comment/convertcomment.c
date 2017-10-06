@@ -116,7 +116,7 @@ void eventpro_no(char ch)
             write_double_ch('/','*', g_state.outputfile);
             g_state.ulstate = CPP_COMMENT_STATE;
         }
-        if('*' == nextch)   //C Comment
+        else if('*' == nextch)   //C Comment
         {
             write_double_ch('/','*', g_state.outputfile);
             g_state.ulstate = C_COMMENT_STATE;
@@ -224,7 +224,7 @@ void eventpro_cpp(char ch)
 void eventpro_str(char ch)
 {
     char nextch;
-    write_ch('"',g_state.outputfile);
+    write_ch('"', g_state.outputfile);
     int flag = 1;
     nextch = read_ch(g_state.inputfile);
     long n = 0;
