@@ -202,7 +202,6 @@ void eventpro_cpp(char ch)
         if('/' == nextch)
         {
             write_double_ch(' ', ' ', g_state.outputfile);
-            g_state.ulstate = NO_COMMENT_STATE;
         }
         else
         {
