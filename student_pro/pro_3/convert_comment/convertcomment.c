@@ -14,6 +14,7 @@ typedef enum
     NO_COMMENT_STATE,
     C_COMMENT_STATE,
     CPP_COMMENT_STATE,
+  //  STRING_STATE,
     END_STATE
 }enum_state;
 
@@ -26,10 +27,10 @@ typedef struct
 }state_machine;
 
 /////////////////////////////////////////////////////
-FILE* open_file(char *filename, char *mode)
+/*FILE* open_file(char *filename, char *mode)
 {
     FILE *fp = fopen(filename, mode);
-    if(fp == NULL)
+    if(NULL == fp)
     {
         printf("open %s fail.\n",filename);
         exit(1);
@@ -39,21 +40,21 @@ FILE* open_file(char *filename, char *mode)
 void close_file(FILE *fp)
 {
     fclose(fp);
-}
+}*/
 
 char read_ch(FILE *fp)
 {
-    assert(fp != NULL);
+    assert(NULL != fp);
     return fgetc(fp);
 }
 void write_ch(char ch, FILE *fp)
 {
-    assert(fp != NULL);
+    assert(NULL != fp);
     fputc(ch, fp);
 }
 void write_double_ch(char ch1, char ch2, FILE *fp)
 {
-    assert(fp != NULL);
+    assert(NULL != fp);
     fputc(ch1, fp);
     fputc(ch2, fp);
 }
@@ -63,7 +64,7 @@ state_machine g_state;
 
 int convertcomment(FILE *inputfile, FILE *outputfile)
 {
-    if(inputfile==NULL || outputfile==NULL)
+    if(NULL == inputfile || NULL == outputfile)
     {
         printf("argument is invalid.\n");
         return -1;
@@ -75,9 +76,9 @@ int convertcomment(FILE *inputfile, FILE *outputfile)
     g_state.ulstate = NO_COMMENT_STATE; 
 
     char ch;
-    while(g_state.ulstate != END_STATE)
+    while(END_STATE != g_state.ulstate)
     {
-        ch = fgetc(g_state.inputfile);
+        ch = read_ch(g_state.inputfile);
         eventpro(ch);
     }
     
@@ -97,8 +98,9 @@ void eventpro(char ch)
     case CPP_COMMENT_STATE:
         eventpro_cpp(ch);
         break;
-    //case END_STATE:
-    //    break;
+  /*  case STRING_STATE:
+        eventpro_str(ch);
+        break;*/
     }
 }
 
@@ -109,19 +111,29 @@ void eventpro_no(char ch)
     {
     case '/':
         nextch = read_ch(g_state.inputfile);
-        if(nextch == '/')   //C++ Comment
+        if('/' == nextch)   //C++ Comment
         {
             write_double_ch('/','*', g_state.outputfile);
             g_state.ulstate = CPP_COMMENT_STATE;
         }
-        if(nextch == '*')//C Comment
+        if('*' == nextch)   //C Comment
         {
             write_double_ch('/','*', g_state.outputfile);
             g_state.ulstate = C_COMMENT_STATE;
         }
+        else
+        {
+            write_double_ch('/',nextch,g_state.outputfile);
+        }
+        break;
+    case '"':
+        eventpro_str(ch);
+        break;
+    case EOF:
+        g_state.ulstate = END_STATE;
         break;
     default:
-        fputc(ch, g_state.outputfile);
+        write_ch(ch, g_state.outputfile);
         break;
     }
 }
@@ -132,27 +144,35 @@ void eventpro_c(char ch)
     {
     case '/':
         nextch = read_ch(g_state.inputfile);
-        if(nextch == '/')   //C++ Comment
+        if('/' == nextch || '*' == nextch)   //C++ Comment
         {
-            write_double_ch(' ',' ', g_state.outputfile);
+            write_double_ch(' ', ' ', g_state.outputfile);
         }
         else
         {
-            write_double_ch('/',nextch, g_state.outputfile);
+            write_double_ch('/', nextch, g_state.outputfile);
         }
+        break;
     case '*':
         nextch = read_ch(g_state.inputfile);
-        if(nextch == '/')   
+        if('/' == nextch)   
         {
-            write_double_ch('*','/', g_state.outputfile);
+            write_double_ch('*', '/', g_state.outputfile);
+            g_state.ulstate = NO_COMMENT_STATE;
         }
         else
         {
-            write_double_ch('*',nextch, g_state.outputfile);
+            write_double_ch('*', nextch, g_state.outputfile);
         }
-
+        break;
+    case '"':
+        eventpro_str(ch);
+        break;
+    case EOF:
+        g_state.ulstate = END_STATE;
+        break;
     default:  
-            write_ch(nextch, g_state.outputfile);
+            write_ch(ch, g_state.outputfile);
         break;
     }
 }
@@ -161,36 +181,79 @@ void eventpro_cpp(char ch)
     char nextch;
     switch(ch)
     {
-    case EOF:
-        fputc('*', g_state.outputfile);
-        fputc('/', g_state.outputfile);
-        g_state.ulstate = END_STATE;
-        break;
     case '\n':
-        fputc('*', g_state.outputfile);
-        fputc('/', g_state.outputfile);
+        write_double_ch('*', '/', g_state.outputfile);
         fputc('\n',g_state.outputfile);
         g_state.ulstate = NO_COMMENT_STATE;
         break;
     case '/':
-        nextch = fgetc(g_state.inputfile);
-        if(nextch=='/' || nextch=='*') // 123  //456  or /*abc
+        nextch = read_ch(g_state.inputfile);
+        if('/' == nextch || '*' == nextch)
         {
-            fputc(' ',g_state.outputfile);
-            fputc(' ',g_state.outputfile);
+            write_double_ch(' ', ' ', g_state.outputfile);
+        }
+        else
+        {
+            write_double_ch('/', nextch, g_state.outputfile);
         }
         break;
     case '*':
         nextch = fgetc(g_state.inputfile);
-        if(nextch == '/')
+        if('/' == nextch)
         {
-            fputc(' ',g_state.outputfile);
-            fputc(' ',g_state.outputfile);
+            write_double_ch(' ', ' ', g_state.outputfile);
             g_state.ulstate = NO_COMMENT_STATE;
         }
+        else
+        {
+            write_double_ch('*', nextch, g_state.outputfile);
+        }
+        break;
+    case '"':
+        eventpro_str(ch);
+        break;
+    case EOF:
+        write_double_ch('*', '/', g_state.outputfile);
+        g_state.ulstate = END_STATE;
         break;
     default:
-        fputc(ch, g_state.outputfile);
+        write_ch(ch, g_state.outputfile);
         break;
+    }
+}
+void eventpro_str(char ch)
+{
+    char nextch;
+    write_ch('"',g_state.outputfile);
+    int flag = 1;
+    nextch = read_ch(g_state.inputfile);
+    long n = 0;
+    while('\n' != nextch && flag)
+    {
+        if('"' == nextch)
+        {
+            flag = 0;
+        }
+        else
+        {
+            nextch = read_ch(g_state.inputfile);
+            n++;
+        }
+    }
+    if(1 == flag)
+    {
+        fseek(g_state.inputfile, (n-1), 1);
+        write_ch(ch, g_state.outputfile);
+    }
+    else
+    {
+        fseek(g_state.inputfile, (n-1), 1);
+        nextch = read_ch(g_state.inputfile);
+        while('"' != nextch)
+        {
+            write_ch(ch, g_state.outputfile);
+            nextch = read_ch(g_state.inputfile);
+        }
+        write_ch('"', g_state.outputfile);
     }
 }
