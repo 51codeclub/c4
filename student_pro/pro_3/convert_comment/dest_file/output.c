@@ -31,7 +31,18 @@
 
 /*                                                                                                                                                                                                                               5*/
 
-"""""""""hello /*comment convert.""*/
-char *str1 = """""""xy*/z""
+"bcdefghijklmn~~~~!!!!!!!!"
+
+/*          /xyz*/
+
+char *str = "ello //comment convert.";
+
+char *str1 = "ello /* comment */ convert.";
+
+/*abc**/
+
+  abc"y//z"
+
+  abc"y*/z"
 
 

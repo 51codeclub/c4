@@ -223,15 +223,20 @@ void eventpro_cpp(char ch)
 void eventpro_str(char ch)
 {
     char nextch;
-    write_ch('"', g_state.outputfile);
     int flag = 1;
-    nextch = read_ch(g_state.inputfile);
+    int mark = 1;
     long n = 0;
-    while('\n' != nextch && flag)
+    write_ch('"', g_state.outputfile);
+    nextch = read_ch(g_state.inputfile);
+    while(EOF != nextch && mark && flag)
     {
         if('"' == nextch)
         {
             flag = 0;
+        }
+        else if('\n' == nextch)
+        {
+            mark = 0;
         }
         else
         {
@@ -239,18 +244,33 @@ void eventpro_str(char ch)
             n++;
         }
     }
-    if(1 == flag)
+    if(1 == flag && 1 == mark)         //EOF case
     {
-        fseek(g_state.inputfile, (n-1), 1);
-        write_ch(ch, g_state.outputfile);
+        fseek(g_state.inputfile, -n+1, 1);
+        nextch = read_ch(g_state.inputfile);
+        while(EOF != nextch)
+        {
+            write_ch(nextch, g_state.outputfile);
+            nextch = read_ch(g_state.inputfile);
+        }
+    }
+    else if(1 == flag && 0 == mark)         //'\n'case
+    {
+        fseek(g_state.inputfile, -n-1, 1);
+        nextch = read_ch(g_state.inputfile);
+        while('\n' != nextch)
+        {
+            write_ch(nextch, g_state.outputfile);
+            nextch = read_ch(g_state.inputfile);
+        }
     }
     else
     {
-        fseek(g_state.inputfile, (n-1), 1);
+        fseek(g_state.inputfile, -n, 1);  //'"' case
         nextch = read_ch(g_state.inputfile);
         while('"' != nextch)
         {
-            write_ch(ch, g_state.outputfile);
+            write_ch(nextch, g_state.outputfile);
             nextch = read_ch(g_state.inputfile);
         }
         write_ch('"', g_state.outputfile);
