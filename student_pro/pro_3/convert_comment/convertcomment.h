@@ -11,6 +11,12 @@
 #include<stdlib.h>
 #include<assert.h>
 
+FILE* open_file(char *filename, char *mode);
+void close_file(FILE *fp);
+char read_ch(FILE *fp);
+void write_ch(char ch, FILE *fp);
+void write_double_ch(char ch1, char ch2, FILE *fp);
+
 void eventpro(char ch);
 void eventpro_no(char ch);
 void eventpro_c(char ch);

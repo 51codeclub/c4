@@ -10,13 +10,13 @@
 
 int main(int argc, char *argv[])
 {
-    FILE *fpin = fopen("./src_file/input.c", "r"); 
+    FILE *fpin = open_file("./src_file/input.c", "r"); 
     if(NULL == fpin)
     {
         printf("open input.c fail.\n");
         return -1;
     }
-    FILE *fpout = fopen("./dest_file/output.c", "w");
+    FILE *fpout = open_file("./dest_file/output.c", "w");
     if(NULL == fpout)
     {
         printf("open output.c fail.\n");
@@ -25,8 +25,8 @@ int main(int argc, char *argv[])
 
     convertcomment(fpin, fpout);
 
-    fclose(fpin);
-    fclose(fpout);
+    close_file(fpin);
+    close_file(fpout);
 
     printf("Comment Convert Completion.\n");
     return 0;

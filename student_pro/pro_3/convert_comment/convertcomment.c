@@ -27,7 +27,7 @@ typedef struct
 }state_machine;
 
 /////////////////////////////////////////////////////
-/*FILE* open_file(char *filename, char *mode)
+FILE* open_file(char *filename, char *mode)
 {
     FILE *fp = fopen(filename, mode);
     if(NULL == fp)
@@ -40,7 +40,7 @@ typedef struct
 void close_file(FILE *fp)
 {
     fclose(fp);
-}*/
+}
 
 char read_ch(FILE *fp)
 {
