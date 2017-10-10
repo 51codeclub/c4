@@ -7,13 +7,14 @@
 **********************************************************/
 
 #include"convertcomment.h"
-
+#include<assert.h>
 //定义状态
 typedef enum
 {
     NO_COMMENT_STATE,
     C_COMMENT_STATE,
     CPP_COMMENT_STATE,
+    STR_STATE,
     END_STATE
 }enum_state;
 
@@ -97,6 +98,9 @@ void eventpro(char ch)
     case CPP_COMMENT_STATE:
         eventpro_cpp(ch);
         break;
+    case STR_STATE:
+	eventpro_str(ch);
+	break;
     //case END_STATE:
     //    break;
     }
@@ -131,7 +135,34 @@ void eventpro_no(char ch)
     }
 }
 void eventpro_c(char ch)
-{}
+{
+	char nextch;
+     switch(ch)
+	{
+	    case'/':
+		nextch = fgetc(g_state.inputfile);
+		if(nextch =='/'|| nextch=='*')
+		{
+			write_double_ch(' ',' ',g_state.outputfile);
+		}
+		break;
+	    case'*':
+		nextch ==fgetc(g_state.inputfile);
+		if(nextch =='/')
+		{
+			write_double_ch(ch,nextch,g_state.outputfile);
+			g_state.ulstate = NO_COMMENT_STATE;
+		}
+		break;
+	    case'"':
+		fputc(ch,g_state.outputfile);
+		g_state.ulstate =STR_STATE;
+		break;
+	    default:
+		fputc(ch,g_state.outputfile);
+		break;
+	}
+}
 void eventpro_cpp(char ch)
 {
     char nextch;
@@ -177,7 +208,7 @@ void eventpro_str(char ch)
 	long n = 0;
     	write_ch('"', g_state.outputfile);
    	 nextch = read_ch(g_state.inputfile);
-    	while(EOF != nextch && mark && flag)
+    	while(EOF != nextch && flag1 && flag2)
     	{
         	if('"' == nextch)
         	{
@@ -193,7 +224,7 @@ void eventpro_str(char ch)
             	n++;
 		}
     	}
-    	if(1 == flag && 1 == mark)         //EOF case
+    	if(1 == flag1 && 1 == flag2)         //EOF case
     	{
         	fseek(g_state.inputfile, -n+1, 1);
         	nextch = read_ch(g_state.inputfile);
@@ -203,7 +234,7 @@ void eventpro_str(char ch)
             	nextch = read_ch(g_state.inputfile);
         	}
     	}
-    	else if(1 == flag && 0 == mark)         //'\n'case
+    	else if(1 == flag1 && 0 == flag2)         //'\n'case
     	{
         	fseek(g_state.inputfile, -n-1, 1);
         	nextch = read_ch(g_state.inputfile);
