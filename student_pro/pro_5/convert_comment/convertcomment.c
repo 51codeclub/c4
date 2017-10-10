@@ -7,47 +7,61 @@
 **********************************************************/
 
 #include"convertcomment.h"
-#include"utili.h"
-
+#include<assert.h>
+//定义状态
 typedef enum
-
 {
+    NO_COMMENT_STATE,
+    C_COMMENT_STATE,
+    CPP_COMMENT_STATE,
+    STR_STATE,
+    END_STATE
+}enum_state;
 
-	NO_COMMENT_STATE,
-	C_COMMENT_STATE,
-	CPP_COMMENT_STATE,
-	STR_STATE,
-	END_COMMENT_STATE
-}ENUM_STATE;
-
-
-
-typedef  struct  STATA_MACHINE
-
+//定义状态机
+typedef struct 
 {
+    FILE *inputfile;
+    FILE *outputfile;
+    enum_state ulstate;
+}state_machine;
 
-	FILE  *InPutFile;
-	FILE  *OutPutFile;
-	ENUM_STATE state;
-}StateMachine;
+/////////////////////////////////////////////////////
+FILE* open_file(char *filename, char *mode)
+{
+    FILE *fp = fopen(filename, mode);
+    if(fp == NULL)
+    {
+        printf("open %s fail.\n",filename);
+        exit(1);
+    }
+    return fp;
+}
+void close_file(FILE *fp)
+{
+    fclose(fp);
+}
 
+char read_ch(FILE *fp)
+{
+    assert(fp != NULL);
+    return fgetc(fp);
+}
+void write_ch(char ch, FILE *fp)
+{
+    assert(fp != NULL);
+    fputc(ch, fp);
+}
+void write_double_ch(char ch1, char ch2, FILE *fp)
+{
+    assert(fp != NULL);
+    fputc(ch1, fp);
+    fputc(ch2, fp);
+}
 
+/////////////////////////////////////////////////////
+state_machine g_state;
 
-StateMachine   g_state;
-
-
-
-
-
-void EventPro(char ch);
-
-
-
-void Event_COMMENT_AT_NO(char ch);
-void Event_COMMENT_AT_C(char ch);
-void Event_COMMENT_AT_CPP(char ch);
-void Event_COMMENT_AT_END(char ch);
-void Event_COMMENT_AT_STR(char ch);
 int convertcomment(FILE *inputfile, FILE *outputfile)
 {
     if(inputfile==NULL || outputfile==NULL)
@@ -55,284 +69,201 @@ int convertcomment(FILE *inputfile, FILE *outputfile)
         printf("argument is invalid.\n");
         return -1;
     }
-	 g_state.InPutFile = inputfile;
-	g_state.OutPutFile = outputfile:
-	g_state.state = NO_COMMENT_STATE;
 
+    //初始化状态机
+    g_state.inputfile = inputfile;
+    g_state.outputfile = outputfile;
+    g_state.ulstate = NO_COMMENT_STATE; 
 
-
-	char ch;
-
-
-
-	while(g_state.state != END_COMMENT_STATE)
-	{
-		ch = fgetc(g_state.InPutFile);
-		EventPro(ch);
-	}
-    	return 0;
-}
-void EventPro(char ch)
-{
-	switch(g_state.state)
-	{
-	case NO_COMMENT_STATE:
-		Event_COMMENT_AT_NO(ch);
-
-		break;
-	case C_COMMENT_STATE:
-		Event_COMMENT_AT_C(ch);
-
-		break;
-	case CPP_COMMENT_STATE:
-		Event_COMMENT_AT_CPP(ch);
-		break;
-	case END_COMMENT_STATE:
-		break;
-	case STR_STATE:
-		Event_COMMENT_AT_STR(ch);
-		break;
-
-	}
-
-
+    char ch;
+    while(g_state.ulstate != END_STATE)
+    {
+        ch = fgetc(g_state.inputfile);
+        eventpro(ch);
+    }
+    
+    return 0;
 }
 
-
-
-void Event_COMMENT_AT_NO(char ch)
+void eventpro(char ch)
 {
-	char NextRead;
-	switch(ch)
-	{
-	case '/':
-		{
-			NextRead = fgetc(g_state.InPutFile);
-			if(NextRead == '/')           /*进入C++注释*/
-			{
-				fputc('/',g_state.OutPutFile);	
-				fputc('*',g_state.OutPutFile);
-				g_state.state = CPP_COMMENT_STATE;
-			}
-			else  if(  NextRead == '*')        /*进入C语言注释*/
-			{
-				fputc(ch,g_state.OutPutFile);
-				fputc(NextRead,g_state.OutPutFile);
-				g_state.state = C_COMMENT_STATE;
-			}
-
-			else                              
-			{
-				fputc(ch,g_state.OutPutFile);
-				fputc(NextRead,g_state.OutPutFile);
-				g_state.state = NO_COMMENT_STATE;
-
-			}
-		}
-		break;
-
-	case '"':                 /*进入字符串状态*/
-		{
-			fputc(ch,g_state.OutPutFile);
-			g_state.state = STR_STATE;
-
-		}
-		break;
-	case EOF:                         /*进入文件结尾*/
-		g_state.state = END_COMMENT_STATE;
-
-	case'\'':
-		{
-			NextRead = fgetc(g_state.InPutFile);
-			if(NextRead == '"')
-			{
-				fputc(ch,g_state.OutPutFile);
-				fputc(NextRead,g_state.OutPutFile);
-			}
-			else
-			{
-				fputc(ch,g_state.OutPutFile);
-				fseek(g_state.InPutFile,-1,1); 
-			}
-		}
-		break;
-
-	default :
-		fputc(ch,g_state.OutPutFile);
-		break;
-	}
+    switch(g_state.ulstate)
+    {
+    case NO_COMMENT_STATE:
+        eventpro_no(ch);
+        break;
+    case C_COMMENT_STATE:
+        eventpro_c(ch);
+        break;
+    case CPP_COMMENT_STATE:
+        eventpro_cpp(ch);
+        break;
+    case STR_STATE:
+	eventpro_str(ch);
+	break;
+    //case END_STATE:
+    //    break;
+    }
 }
 
-
-/*c注释状态：可能遇到：c注释结束--》终态 c注释（空格代替），c++注释（空格代替），字符串状态（中的注释不改变）*/
-void Event_COMMENT_AT_C(char ch)
+void eventpro_no(char ch)
 {
-	char NextRead;
-	switch(ch)
+    char nextch;
+    switch(ch)
+    {
+    case '/':
+        nextch = read_ch(g_state.inputfile);
+        if(nextch == '/')   //C++ Comment
+        {
+            write_double_ch('/','*', g_state.outputfile);
+            g_state.ulstate = CPP_COMMENT_STATE;
+        }
+	else if(nextch=='*')
 	{
-	case '*':                                                   /*c注释状态*/
-		{
-			NextRead = fgetc(g_state.InPutFile);
-			if(NextRead == '/')               /*c语言注释结束*/
-			{
-				fputc(ch,g_state.OutPutFile);
-				fputc(NextRead,g_state.OutPutFile);
-				g_state.state = NO_COMMENT_STATE;
-			}
-			else
-			{
-				fputc(ch,g_state.OutPutFile);     /*只有一个星号将其打印*/
-				fseek(g_state.InPutFile,-1,1);    /*因为求NextReaad时调用了fgetc，文件指针后移了一位，所以要将文件指针前移一味，否则会跳过一个字符*/
-
-			}	
-		}
-		break;
-	case '/': 
-		{
-			NextRead = fgetc(g_state.InPutFile);
-			if(NextRead == '/' || NextRead == '*')    /*参杂c++或者c语言注释，用两个空格代替*/
-			{
-				fputc( ' ',g_state.OutPutFile);
-				fputc( ' ',g_state.OutPutFile);
-			}
-			else
-			{
-				fputc(ch,g_state.OutPutFile);     /*只有一个星号将其打印*/
-				fseek(g_state.InPutFile,-1,1);    /*因为求NextReaad时调用了fgetc，文件指针后移了一位，所以要将文件指针前移一味，否则会跳过一个字符*/
-			}
-
-
-		}
-		break;
+		write_double_ch('/','*',g_state.outputfile);
+		g_state.ulstate =C_COMMENT_STATE;
+	}
+        break;
 	case '"':
-		{
-			fputc(ch,g_state.OutPutFile);
-			g_state.state = STR_STATE;
-
-		}
-		break;
-
-
-	default :
-		fputc(ch,g_state.OutPutFile);
-		break;
-	}
-
-}
-
-/*          */
-/*                                                                  */
-
-
-/*C++注释状态：可能遇到：c++注释结束、c注释（空格代替）、c++注释（空格代替）、字符串状态（全部输出）*/
-void Event_COMMENT_AT_CPP(char ch)
-{
-	char NextRead;
-
-	switch(ch)
-	{
-	case '/':                                   /*C++中嵌套其他注释用两个空格代替                       */
-		{
-			NextRead = fgetc(g_state.InPutFile);
-			if(NextRead == '/')                    /*c++注释中嵌套c++注释用空格代替*/
-			{
-
-				fputc(' ',g_state.OutPutFile);
-				fputc(' ',g_state.OutPutFile);
-			}
-
-			else  if(NextRead == '*')                /*进入c语言注释*/
-			{
-				fputc(' ',g_state.OutPutFile);
-				fputc(' ',g_state.OutPutFile);
-
-			}
-			else 
-
-			{
-				fputc(ch,g_state.OutPutFile);     /*只有一个星号将其打印*/
-				fseek(g_state.InPutFile,-1,1);    /*因为求NextReaad时调用了fgetc，文件指针后移了一位，所以要将文件指针前移一味，否则会跳过一个字符*/
-			}
-
-		}
-
-		break;
-	case '*':
-		{
-
-			NextRead = fgetc(g_state.InPutFile);
-			if(NextRead == '/')                    /*c++注释中嵌套c注释用空格代替*/
-			{
-				fputc(' ',g_state.OutPutFile);
-				fputc(' ',g_state.OutPutFile);
-			}
-
-			else 
-
-			{
-				fputc(ch,g_state.OutPutFile);     /*只有一个星号将其打印*/
-				fseek(g_state.InPutFile,-1,1);    /*因为求NextReaad时调用了fgetc，文件指针后移了一位，所以要将文件指针前移一味，否则会跳过一个字符*/
-			}
-
-
-		}
-		break;
-	case '\n':
-		{
-			fputc('*',g_state.OutPutFile);
-			fputc('/',g_state.OutPutFile);
-			fputc('\n',g_state.OutPutFile);
-			g_state.state = NO_COMMENT_STATE;
-
-		}
-		break;
-
-
-
-	default :
-		fputc(ch,g_state.OutPutFile);
-		break;
-	}
-}
-
-
-
-void Event_COMMENT_AT_STR(char ch)
-
-{
-	char NextRead;
-	switch(ch)
-	{
-	case '\0':
-		{
-			NextRead = fgetc(g_state.InPutFile);
-			if(NextRead == '"')
-			{
-				fputc(ch,g_state.OutPutFile);
-				fputc(NextRead,g_state.OutPutFile);
-				g_state.state = NO_COMMENT_STATE;
-			}
-			else
-			{
-				fputc(ch,g_state.OutPutFile);     /*只有一个星号将其打印*/
-				fseek(g_state.InPutFile,-1,1);    /*因为求NextReaad时调用了fgetc，文件指针后移了一位，所以要将文件指针前移一味，否则会跳过一个字符*/
-			}
-
-		}	
-		break;
-	case'"':
-		fputc(ch,g_state.OutPutFile);
-		g_state.state = NO_COMMENT_STATE;
-
+		eventpro_str(ch);
 		break;
 	case EOF:
-		g_state.state = END_COMMENT_STATE;
-		break;
-
-	default :
-		fputc(ch,g_state.OutPutFile);
-		break;
-
-	}
-
+		g_state.ulstate =END_STATE;
+    default:
+        fputc(ch, g_state.outputfile);
+        break;
+    }
 }
+void eventpro_c(char ch)
+{
+	char nextch;
+     switch(ch)
+	{
+	    case'/':
+		nextch = fgetc(g_state.inputfile);
+		if(nextch =='/'|| nextch=='*')
+		{
+			write_double_ch(' ',' ',g_state.outputfile);
+		}
+		break;
+	    case'*':
+		nextch ==fgetc(g_state.inputfile);
+		if(nextch =='/')
+		{
+			write_double_ch(ch,nextch,g_state.outputfile);
+			g_state.ulstate = NO_COMMENT_STATE;
+		}
+		break;
+	    case'"':
+		fputc(ch,g_state.outputfile);
+		g_state.ulstate =STR_STATE;
+		break;
+	    default:
+		fputc(ch,g_state.outputfile);
+		break;
+	}
+}
+void eventpro_cpp(char ch)
+{
+    char nextch;
+    switch(ch)
+    {
+    case EOF:
+        fputc('*', g_state.outputfile);
+        fputc('/', g_state.outputfile);
+        g_state.ulstate = END_STATE;
+        break;
+    case '\n':
+        fputc('*', g_state.outputfile);
+        fputc('/', g_state.outputfile);
+        fputc('\n',g_state.outputfile);
+        g_state.ulstate = NO_COMMENT_STATE;
+        break;
+    case '/':
+        nextch = fgetc(g_state.inputfile);
+        if(nextch=='/' || nextch=='*') // 123  //456  or /*abc
+        {
+            fputc(' ',g_state.outputfile);
+            fputc(' ',g_state.outputfile);
+        }
+        break;
+    case '*':
+        nextch = fgetc(g_state.inputfile);
+        if(nextch == '/')
+        {
+            fputc(' ',g_state.outputfile);
+            fputc(' ',g_state.outputfile);
+        }
+        break;
+    default:
+        fputc(ch, g_state.outputfile);
+        break;
+    }
+}
+void eventpro_str(char ch)
+{
+	char nextch;
+	int flag1 = 1;
+	int flag2 = 1;
+	long n = 0;
+    	write_ch('"', g_state.outputfile);
+   	 nextch = read_ch(g_state.inputfile);
+    	while(EOF != nextch && flag1 && flag2)
+    	{
+        	if('"' == nextch)
+        	{
+            	flag1 = 0;
+        	}
+        	else if('\n' == nextch)
+        	{
+            	flag2 = 0;
+        	}
+        	else
+        	{
+            	nextch = read_ch(g_state.inputfile);
+            	n++;
+		}
+    	}
+    	if(1 == flag1 && 1 == flag2)         //EOF case
+    	{
+        	fseek(g_state.inputfile, -n+1, 1);
+        	nextch = read_ch(g_state.inputfile);
+        	while(EOF != nextch)
+        	{
+            	write_ch(nextch, g_state.outputfile);
+            	nextch = read_ch(g_state.inputfile);
+        	}
+    	}
+    	else if(1 == flag1 && 0 == flag2)         //'\n'case
+    	{
+        	fseek(g_state.inputfile, -n-1, 1);
+        	nextch = read_ch(g_state.inputfile);
+       	 while('\n' != nextch)
+        	{
+            	write_ch(nextch, g_state.outputfile);
+	 	}
+       	 write_ch('"', g_state.outputfile);
+    	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
