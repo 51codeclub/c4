@@ -14,6 +14,7 @@ typedef enum
     NO_COMMENT_STATE,
     C_COMMENT_STATE,
     CPP_COMMENT_STATE,
+    STR_STATE,
     END_STATE
 }enum_state;
 
@@ -60,6 +61,7 @@ void write_double_ch(char ch1, char ch2, FILE *fp)
 
 /////////////////////////////////////////////////////
 state_machine g_state;
+static enum_state g_pre_state = NO_COMMENT_STATE;
 
 int convertcomment(FILE *inputfile, FILE *outputfile)
 {
@@ -97,6 +99,9 @@ void eventpro(char ch)
     case CPP_COMMENT_STATE:
         eventpro_cpp(ch);
         break;
+    case STR_STATE:
+        eventpro_str(ch);
+        break;
     //case END_STATE:
     //    break;
     }
@@ -109,11 +114,24 @@ void eventpro_no(char ch)
     {
     case '/':
         nextch = read_ch(g_state.inputfile);
-        if(nextch == '/')   //C++ Comment
+        if(nextch == '/')   //C++ Comment 
         {
             write_double_ch('/','*', g_state.outputfile);
             g_state.ulstate = CPP_COMMENT_STATE;
         }
+        else if(nextch == '*') // C Comment
+        {
+            fputc('/', g_state.outputfile);
+            fputc('*', g_state.outputfile);
+            g_state.ulstate = C_COMMENT_STATE;
+        }
+        break;
+    case EOF:
+        g_state.ulstate = END_STATE;
+        break;
+    case '"':
+        fputc(ch, g_state.outputfile);
+        g_state.ulstate = STR_STATE;
         break;
     default:
         fputc(ch, g_state.outputfile);
@@ -121,7 +139,42 @@ void eventpro_no(char ch)
     }
 }
 void eventpro_c(char ch)
-{}
+{
+    char nextch;
+    switch(ch)
+    {
+    case '*':
+        nextch = fgetc(g_state.inputfile);
+        if(nextch == '/')
+        {
+            fputc('*', g_state.outputfile);
+            fputc('/', g_state.outputfile);
+            g_state.ulstate = NO_COMMENT_STATE;
+        }
+        else 
+        {
+            fputc(ch, g_state.outputfile);
+            fputc(nextch, g_state.outputfile);
+        }
+        break;
+    case '/':
+        nextch = fgetc(g_state.inputfile);
+        if(nextch == '/') //   /*   //
+        {
+            fputc(' ', g_state.outputfile);
+            fputc(' ', g_state.outputfile);
+        }
+        break;
+    case '"':
+        fputc(ch, g_state.outputfile);
+        g_pre_state = C_COMMENT_STATE;
+        g_state.ulstate = STR_STATE;
+        break;
+    default:
+        fputc(ch, g_state.outputfile);
+        break;
+    }
+}
 void eventpro_cpp(char ch)
 {
     char nextch;
@@ -145,6 +198,11 @@ void eventpro_cpp(char ch)
             fputc(' ',g_state.outputfile);
             fputc(' ',g_state.outputfile);
         }
+        else
+        {
+            fputc(ch, g_state.outputfile);
+            fputc(nextch, g_state.outputfile);
+        }
         break;
     case '*':
         nextch = fgetc(g_state.inputfile);
@@ -153,6 +211,16 @@ void eventpro_cpp(char ch)
             fputc(' ',g_state.outputfile);
             fputc(' ',g_state.outputfile);
         }
+        else
+        {
+            fputc('*', g_state.outputfile);
+            fputc(nextch, g_state.outputfile);
+        }
+        break;
+    case '"':
+        fputc('"', g_state.outputfile);
+        g_pre_state = CPP_COMMENT_STATE;
+        g_state.ulstate = STR_STATE;
         break;
     default:
         fputc(ch, g_state.outputfile);
@@ -160,7 +228,45 @@ void eventpro_cpp(char ch)
     }
 }
 
-
+void eventpro_str(char ch)
+{
+    char nextch;
+    switch(ch)
+    {
+    case '"':
+        fputc(ch, g_state.outputfile);
+        g_state.ulstate = g_pre_state;
+        break;
+    case '*':
+        if(g_pre_state == C_COMMENT_STATE)
+        {
+            nextch = fgetc(g_state.inputfile);
+            if(nextch == '/')
+            {
+                g_pre_state = NO_COMMENT_STATE;
+            }
+            fputc('*', g_state.outputfile);
+            fputc('/', g_state.outputfile);
+        }
+        else
+        {
+            nextch = fgetc(g_state.inputfile);
+            if(nextch == '/')
+            {
+                fputc(' ', g_state.outputfile);
+                fputc(' ', g_state.outputfile);
+            }
+        }
+        break;
+    case '\n':
+        fputc('\n', g_state.outputfile);
+        g_state.ulstate = g_pre_state;
+        break;
+    default:
+        fputc(ch, g_state.outputfile);
+        break;
+    }
+}
 
 
 

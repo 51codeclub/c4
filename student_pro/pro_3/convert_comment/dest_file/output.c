@@ -35,14 +35,16 @@
 
 /*          /xyz*/
 
+
 char *str = "ello //comment convert.";
+
+/*abc"y//z"*/
+
+/*abc"y*/z"*/
 
 char *str1 = "ello /* comment */ convert.";
 
 /*abc**/
 
-  abc"y//z"
-
-  abc"y*/z"
 
 
