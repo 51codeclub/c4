@@ -29,20 +29,20 @@
 *//*
  */int i =0;                             
 
-/*                                                                                                                                                                                                                               5*/
+/*       5*/
 
-"bcdefghijklmn~~~~!!!!!!!!"
+"abcdefghijklmn~~~~!!!!!!!!"
 
-/*          /xyz*/
+/*  xyz*/
 
-char *str = "ello //comment convert.";
+char *str = "hello //comment convert.";
 
-char *str1 = "ello /* comment */ convert.";
+char *str1 = "hello /* comment */ convert.";
 
 /*abc**/
 
-  abc"y//z"
+/*abc"xy//z"*/
 
-  abc"y*/z"
+/*abc"xy*/z"*/
 
 

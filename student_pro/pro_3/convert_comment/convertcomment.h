@@ -17,11 +17,13 @@ char read_ch(FILE *fp);
 void write_ch(char ch, FILE *fp);
 void write_double_ch(char ch1, char ch2, FILE *fp);
 
+int convertcomment(FILE *inputfile, FILE *outputfile);
 void eventpro(char ch);
 void eventpro_no(char ch);
 void eventpro_c(char ch);
 void eventpro_cpp(char ch);
 void eventpro_str(char ch);
-int convertcomment(FILE *inputfile, FILE *outputfile);
-
+void eventpro_str_EOF(int amount);
+void eventpro_str_n(int amount);
+void eventpro_str_str(int amount);
 #endif // _CONVERTCOMMENT_o
