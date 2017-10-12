@@ -14,6 +14,9 @@
 #include<string.h>
 #include<dirent.h>
 
+//1 Copy Tool
+//2 direction order
+
 int main()
 {
     char path[100] = {0};

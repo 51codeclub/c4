@@ -35,16 +35,14 @@
 
 /////////////xyz
 
-
 char *str = "hello //comment convert.";
-
-//abc"xy//z"
-
-//abc"xy*/z"
 
 char *str1 = "hello /* comment */ convert.";
 
 /*abc**/
 
+//abc"xy//z"
+
+//abc"xy*/z"
 
 
