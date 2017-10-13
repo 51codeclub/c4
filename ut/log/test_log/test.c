@@ -12,7 +12,11 @@
 
 int main()
 {
+    //set_loglevel(LOG_CRIT);
     FILE *fp = fopen("test.txt", "r");
+
+    sys_log(LOG_ERR, __FILE__, __LINE__, "This is level Test.\n");
+
     if(fp == NULL)
     {
         sys_log(LOG_ERR, __FILE__, __LINE__,"Open %s file error.", "test.txt");

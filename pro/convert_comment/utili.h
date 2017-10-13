@@ -10,5 +10,9 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<assert.h>
+#include<syslog.h>
+#include<string.h>
+#include<time.h>
+#include<stdarg.h>
 
 #endif // _UTILI_H

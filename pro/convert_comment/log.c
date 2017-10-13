@@ -7,7 +7,6 @@
 **********************************************************/
 
 #include"log.h"
-#include"myfunlib.h"
 
 #define LOG_BUFFER_SIZE 256
 
