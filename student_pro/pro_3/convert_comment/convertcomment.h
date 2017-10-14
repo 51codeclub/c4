@@ -23,7 +23,4 @@ void eventpro_no(char ch);
 void eventpro_c(char ch);
 void eventpro_cpp(char ch);
 void eventpro_str(char ch);
-void eventpro_str_EOF(int amount);
-void eventpro_str_n(int amount);
-void eventpro_str_str(int amount);
 #endif // _CONVERTCOMMENT_o

@@ -35,28 +35,16 @@
 
 /*  xyz*/
 
-<<<<<<< HEAD
+
 char *str = "hello //comment convert.";
-
-char *str1 = "hello /* comment */ convert.";
-
-/*abc**/
 
 /*abc"xy//z"*/
 
-/*abc"xy*/z"*/
-=======
+/*abc"xy  z"*/
 
-char *str = "ello //comment convert.";
-
-/*abc"y//z"*/
-
-/*abc"y*/z"*/
-
-char *str1 = "ello /* comment */ convert.";
+char *str1 = "hello /* comment    convert.";
 
 /*abc**/
 
->>>>>>> 34fd25fc92b2ea05b1d946f5e0ed9149e1c95710
 
 

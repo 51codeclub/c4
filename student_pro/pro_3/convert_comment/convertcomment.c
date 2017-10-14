@@ -128,6 +128,7 @@ void eventpro_no(char ch)
         }
         break;
     case '"':
+        write_ch('"', g_state.outputfile);
         g_pre_state.ulstate = NO_COMMENT_STATE;
         g_state.ulstate = STRING_STATE;
         break;
@@ -182,6 +183,7 @@ void eventpro_c(char ch)
         }
         break;
     case '"':
+        write_ch('"', g_state.outputfile);
         g_pre_state.ulstate = C_COMMENT_STATE;
         g_state.ulstate = STRING_STATE;
         break;
@@ -254,6 +256,7 @@ void eventpro_cpp(char ch)
         }
         break;
     case '"':
+        write_ch('"', g_state.outputfile);
         g_pre_state.ulstate = CPP_COMMENT_STATE;
         g_state.ulstate = STRING_STATE;
         break;
@@ -271,7 +274,7 @@ void eventpro_str(char ch)
     int flag = 1;
     int mark = 1;
     long n = 0;
-    write_ch('"', g_state.outputfile);
+    char nextch;
     while(EOF != ch && mark && flag)
     {
         if('"' == ch)
@@ -285,34 +288,40 @@ void eventpro_str(char ch)
         }
     }
     if(1 == flag && 1 == mark)         //EOF case
-        eventpro_str_EOF(n);
-    else if(1 == flag && 0 == mark)         //'\n'case
-        eventpro_str_n(n);
-    else                                //'"' case
-        eventpro_str_str(n);
-}
-void eventpro_str_EOF(int amount)
-{
-    char ch;
-    fseek(g_state.inputfile, -amount+1, 1);
-    g_state.ulstate = g_pre_state.ulstate;
-}
-void eventpro_str_n(int amount)
-{
-    char ch;
-    fseek(g_state.inputfile, -amount-1, 1);
-    g_state.ulstate = g_pre_state.ulstate;
-}
-void eventpro_str_str(int amount)
-{
-    char ch;
-    fseek(g_state.inputfile, -amount-1, 1);  
-    ch = read_ch(g_state.inputfile);
-    while('"' != ch)
     {
-        write_ch(ch, g_state.outputfile);
-        ch = read_ch(g_state.inputfile);
+        fseek(g_state.inputfile, -n+1, 1);
+        g_state.ulstate = g_pre_state.ulstate;
     }
-    write_ch('"', g_state.outputfile);
-    g_state.ulstate = g_pre_state.ulstate;
+    else if(1 == flag && 0 == mark)         //'\n'case
+    {
+        fseek(g_state.inputfile, -n-1, 1);
+        g_state.ulstate = g_pre_state.ulstate;
+    }
+    else                                //'"' case
+    {
+        fseek(g_state.inputfile, -n-1, 1);  
+        ch = read_ch(g_state.inputfile);
+        switch(ch)
+        {
+            case '*':
+                nextch = read_ch(g_state.inputfile);
+                if('/' == nextch)
+                {
+                    write_double_ch(' ', ' ', g_state.outputfile);
+                }
+                else
+                {
+                    write_ch('*', g_state.outputfile);
+                    fseek(g_state.inputfile, -1, 1);
+                }
+                break;
+            case '"':
+                write_ch('"', g_state.outputfile);
+                g_state.ulstate = g_pre_state.ulstate;
+                break;
+            default:
+                write_ch(ch, g_state.outputfile);
+                break;
+        }
+    }
 }
