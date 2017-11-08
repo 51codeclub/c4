@@ -12,6 +12,48 @@
 #include<string.h>
 #include<pthread.h>
 
+#define MAX_THREAD_NUM 3
+
+void* thread_fun(void *arg)
+{
+    int index = *(int*)arg;
+    printf("[%d] thread start up.\n",index);
+    
+    //char buffer[64];
+    //memset(buffer, 0, 64);
+    //sprintf(buffer,"[%d] thread finish.", index);
+
+    //pthread_exit(buffer);
+    //printf("[%d]thread buffer = %s\n",index, buffer);
+    if(index == 0)
+        pthread_exit("[0] thread finish.");
+    else if(index == 1)
+        pthread_exit("[1] thread finish.");
+    else if(index == 2)
+        pthread_exit("[2] thread finish.");
+}
+
+int main()
+{
+    pthread_t tid[MAX_THREAD_NUM];
+    int i;
+    for(i=0; i<MAX_THREAD_NUM; ++i)
+    {
+        pthread_create(&tid[i], NULL, thread_fun, &i);
+        sleep(1);
+    }
+    for(i=0; i<MAX_THREAD_NUM; ++i)
+    {
+        char *retval;
+        pthread_join(tid[i], (void**)&retval);
+        printf("%s\n",retval);
+    }
+    return 0;
+}
+
+
+
+/*
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t  cond  = PTHREAD_COND_INITIALIZER;
 
