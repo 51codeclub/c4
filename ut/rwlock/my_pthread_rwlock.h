@@ -38,7 +38,18 @@ typedef struct
 int my_pthread_rwlock_rdlock(my_pthread_rwlock_t *rw);
 int my_pthread_rwlock_wrlock(my_pthread_rwlock_t *rw);
 int my_pthread_rwlock_unlock(my_pthread_rwlock_t *rw);
+int my_pthread_rwlock_init(my_pthread_rwlock_t *rw, pthread_rwlockattr_t *);
+int my_pthread_rwlock_destroy(my_pthread_rwlock_t *rw);
+int my_pthread_rwlock_tryrdlock(my_pthread_rwlock_t *rw);
+int my_pthread_rwlock_trywrlock(my_pthread_rwlock_t *rw);
 ///////////////////////////////////////////////////////
+
+void clean_up(void *arg)
+{
+    my_pthread_rwlock_t *rw = (my_pthread_rwlock*)arg;
+    rw->rw_nwaitreaders--;
+    pthread_mutex_unlock(&rw->rw_mutex);
+}
 
 int my_pthread_rwlock_rdlock(my_pthread_rwlock_t *rw)
 {
@@ -51,7 +62,9 @@ int my_pthread_rwlock_rdlock(my_pthread_rwlock_t *rw)
     while(rw->rw_refcount<0 || rw->rw_nwaitwriters>0)
     {
         rw->rw_nwaitreaders++;
+        pthread_cleanup_push(clean_up, rw);
         result = pthread_cond_wait(&rw->rw_condreaders, &rw->rw_mutex);
+        pthread_cleanup_pop(0);
         rw->rw_nwaitreaders--;
         if(result != 0)
             break;
