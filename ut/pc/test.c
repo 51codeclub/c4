@@ -45,22 +45,43 @@ void destroy_pc(pc_st *pt)
     pt->read_pos = 0;
 }
 
+void clean_up(void *arg)
+{
+    pthread_mutex_t *mt = (pthread_mutex_t*)arg;
+    pthread_mutex_unlock(mt);
+}
+
 void put(pc_st *pt, int key)
 {
-    //pthread_mutex_lock(&pt->mutex);
-
+    pthread_mutex_lock(&pt->mutex);
+    if((pt->write_pos+1)%BUFFER_SIZE == pt->read_pos)
+    {
+        pthread_cleanup_push(clean_up, &pt->mutex);
+        pthread_cond_wait(&pt->notfull, &pt->mutex);
+        pthread_cleanup_pop(0);
+    }
     pt->buffer[pt->write_pos] = key;
-    pt->write_pos++;
+    pt->write_pos = (pt->write_pos+1) % BUFFER_SIZE;
 
-    //pthread_mutex_unlock(&pt->mutex);
+    pthread_cond_signal(&pt->notempty);
+
+    pthread_mutex_unlock(&pt->mutex);
 }
 int get(pc_st *pt)
 {
     int value;
-    //pthread_mutex_lock(&pt->mutex);
+    pthread_mutex_lock(&pt->mutex);
+    if(pt->write_pos == pt->read_pos)
+    {
+        pthread_cleanup_push(clean_up, &pt->mutex);
+        pthread_cond_wait(&pt->notempty, &pt->mutex);
+        pthread_cleanup_pop(0);
+    }
     value = pt->buffer[pt->read_pos];
-    pt->read_pos++;
-    //pthread_mutex_unlock(&pt->mutex);
+    pt->read_pos = (pt->read_pos+1) % BUFFER_SIZE;
+
+    pthread_cond_signal(&pt->notfull);
+    pthread_mutex_unlock(&pt->mutex);
     return value;
 }
 
