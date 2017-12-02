@@ -11,7 +11,7 @@
 #include<netinet/in.h>
 #include<stdlib.h>
 #include<string.h>
-#include<sys/select.h>
+#include<poll.h>
 
 #define MAX_CLIENT_SIZE 5
 
@@ -27,6 +27,9 @@ int main()
     addrSer.sin_family = AF_INET;
     addrSer.sin_port = htons(8080);
     addrSer.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+    int yes = 1;
+    setsockopt(sockSer, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
 
     socklen_t addrlen = sizeof(struct sockaddr);
     int ret = bind(sockSer, (struct sockaddr*)&addrSer, addrlen);
@@ -44,61 +47,50 @@ int main()
     }
 
     char buffer[128];
-    int client_fd[MAX_CLIENT_SIZE] = {0};
-    int client_conn_num = 0;
+
+    struct pollfd client_fd[MAX_CLIENT_SIZE+1];
+    client_fd[0].fd = sockSer;
+    client_fd[0].events = POLLIN;
+
     int i;
-    fd_set set;
+    for(i=1; i<=MAX_CLIENT_SIZE; ++i)
+    {
+        client_fd[i].fd = 0;
+    }
 
-    int max_sock = sockSer;
-
+    int numfd = 1;
     while(1)
     {
-
-        FD_ZERO(&set);
-        for(i=0; i<MAX_CLIENT_SIZE; ++i)
-        {
-            if(client_fd[i] != 0)
-            {
-                FD_SET(client_fd[i], &set);
-            }
-        }
-        FD_SET(sockSer, &set);
-
-        struct timeval tv;
-        tv.tv_sec = 0;
-        tv.tv_usec = 0;
-
-        int ret = select(max_sock+1, &set, NULL, NULL, &tv); //阻塞
+        int ret = poll(client_fd, numfd, 3000);
         if(ret == -1)
         {
-            perror("select");
+            perror("poll");
             continue;
         }
         else if(ret == 0)
         {
-            printf("Time Out.\n");
+            printf("time out.\n");
             continue;
         }
         else
         {
-            if(FD_ISSET(sockSer, &set))
+            if(client_fd[0].fd==sockSer && (client_fd[0].revents&POLLIN))
             {
-                //accept
-                int sockConn = accept(sockSer, (struct sockaddr*)&addrCli, &addrlen);
+                int sockConn = accept(client_fd[0].fd, (struct sockaddr*)&addrCli, &addrlen);
                 if(sockConn == -1)
                 {
                     perror("accept");
                     continue;
-                }
 
-                if(sockConn > max_sock)
-                    max_sock = sockConn;
-                client_conn_num++;
-                for(i=0; i<MAX_CLIENT_SIZE; ++i)
+                }
+                
+                for(i=1; i<=MAX_CLIENT_SIZE; ++i)
                 {
-                    if(client_fd[i] == 0)
+                    if(client_fd[i].fd == 0)
                     {
-                        client_fd[i] = sockConn;
+                        client_fd[i].fd = sockConn;
+                        client_fd[i].events = POLLIN;
+                        numfd++;
                         break;
                     }
                 }
@@ -107,27 +99,17 @@ int main()
                     printf("Server Over Load.\n");
                 }
                 else
-                {
-                    printf("New Client Come Baby.\n");
-                }
+                    printf("A New Client Come.....\n");
             }
             else
             {
-                for(i=0; i<MAX_CLIENT_SIZE; ++i)
+                for(i=1; i<=MAX_CLIENT_SIZE; ++i)
                 {
-                    if(client_fd[i]!=0 && FD_ISSET(client_fd[i], &set))
+                    if(client_fd[i].fd!=0 && (client_fd[i].revents&POLLIN))
                     {
-                        int recvbyte = recv(client_fd[i], buffer, 128, 0);
-                        if(recvbyte <= 0)
-                        {
-                            printf("Recv Data Error.\n");
-                        }
-                        int sendbyte = send(client_fd[i], buffer, strlen(buffer)+1, 0);
-                        if(sendbyte <= 0)
-                        {
-                            printf("Send Data Error.\n");
-                        }
-                        break;
+                        recv(client_fd[i].fd, buffer, 128, 0);
+                        printf("client msg:> %s\n",buffer);
+                        send(client_fd[i].fd, buffer, strlen(buffer)+1, 0);
                     }
                 }
             }
